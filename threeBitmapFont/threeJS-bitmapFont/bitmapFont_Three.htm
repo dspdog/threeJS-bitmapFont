@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<!-- saved from url=(0071)http://localhost:1335/literate-raytracer-gh-pages/bitmapFont_Three.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head><body>
+
+<script src="./bitmapFont_Three_files/setOfPts2Mesh.js"></script>
+
+<script src="./bitmapFont_Three_files/three.js"></script>
+<script src="./bitmapFont_Three_files/OrbitControls.js"></script>
+<script src="./bitmapFont_Three_files/stats.min.js"></script>
+<script src="./bitmapFont_Three_files/BitmapFont_Three.js"></script>
+
+<script>
+
+    var stats = new Stats();
+    document.body.appendChild( stats.dom );
+
+    var renderer2;
+
+    var bf = new BitmapFont();
+
+    bf.getBitmapStrArr_byString("#Ok&!な").forEach(function(letterStr){
+        console.log(letterStr);
+
+    });
+
+    String.prototype.replaceAt=function(index, replacement) {
+        return this.substr(0, index) + replacement+ this.substr(index + replacement.length);
+    }
+
+
+    function onBuiltText(){
+        if(!scene) scene = new THREE.Scene();
+
+
+        var ySoFar = 100;
+        var letterMeshes=[];
+        var material = new THREE.PointsMaterial( { size: 1.8, color: 0x00ff00 } );
+
+        function renderString(str){
+
+            letterMeshes.forEach(function(mesh){
+                scene.remove(mesh);
+                mesh=null;
+            });
+
+            letterMeshes=[];
+
+            var letterMesh = bf.getPtMeshForString(str, material, 128);
+            letterMesh.translateX(-500);
+            //ySoFar+=0.1;
+            letterMesh.translateY(ySoFar);
+            scene.add(letterMesh);
+            letterMeshes.push(letterMesh);
+        }
+
+        var i=0;
+
+        function rndStr(len){
+            var s="";
+            var i = len;
+            while(i--){
+                s+=bf.randomValidLetter();
+            }
+            return s;
+        }
+
+        function rndModifications(str,numMods){
+            var s=str;
+            var i = numMods;
+            while(i--){
+                var len = Math.floor(Math.random()*3);
+                var rndIndex = Math.floor((str.length-len)*Math.random());
+                s=s.replaceAt(rndIndex,rndStr(len));
+            }
+            return s;
+        }
+
+        var testChar = rndStr(1024*4.0);//slows dows at around 32K
+        setInterval(function(){
+            testChar=rndModifications(testChar,256);
+
+            var animStr =  "▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▐─━│┃┄┅┆┇┈┉┊┋┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋╌╍╎╏═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬╭╮╯╰╱╲╳╴╵╶╷╸╹╺╻╼╽╾╿▀";
+            var testChar0 = animStr.charAt(i%animStr.length);
+            i++;
+            renderString(testChar0 + testChar+"HACKING_=ゑを"+Math.floor(Math.random()*9999));
+        },1);
+
+
+
+        var helper = new THREE.GridHelper( 100, 4.0 );//totalSize, divisions
+        helper.position.y = 0;
+        helper.material.opacity = 0.25;
+        helper.material.transparent = true;
+        //scene.add( helper );
+
+        var axisHelper = new THREE.AxisHelper( 25.0 );
+        //scene.add( axisHelper );
+
+        frame=0;
+        clock= new THREE.Clock();
+
+        init();
+        animate();
+    }
+
+    setTimeout(onBuiltText,0);
+    //buildTextGeom("G", onBuiltText);
+
+    var theQuadMesh;
+    var threeMesh2;
+    var dataTex;
+    var clock;
+    var csg;
+    var frame;
+    var camera = null;
+    var scene = null;
+
+    function initForCSG(){
+
+    }
+
+
+    var controls;
+
+    function init() {
+        if(!camera){  //first time only
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / ( window.innerHeight / 2 ), 1, 10000);
+
+            camera.position.set(64,64,64);
+            //camera.lookAt(threeMesh2.position);
+
+            var AMBIENT_COLOR = 0xcccccc;
+            var AMBIENT_INTENSITY = 0.55;
+
+            var ambientLight = new THREE.AmbientLight( AMBIENT_COLOR, AMBIENT_INTENSITY );
+            // scene.add( ambientLight );
+
+
+            spotLight = new THREE.DirectionalLight( 0xffffbb, 0.953 );
+            spotLight.position.set( 0.5, 0, 1 );
+            spotLight.position.multiplyScalar( 700 );
+            scene.add( spotLight );
+
+            renderer2 = new THREE.WebGLRenderer( { antialias: true } );
+            renderer2.setClearColor( 0x222222 );
+            renderer2.setPixelRatio( window.devicePixelRatio );
+            renderer2.setSize( window.innerWidth, window.innerHeight / 2 );
+            renderer2.domElement.id = "threecanvas";
+            renderer2.domElement.style.position = "absolute";
+            renderer2.domElement.style.width = "100%";
+            renderer2.domElement.style.height = "100%";
+
+
+            document.body.appendChild( renderer2.domElement,renderer2.domElement );
+
+            // Controls
+            controls = new THREE.OrbitControls( camera, renderer2.domElement );
+            controls.damping = 0.2;
+
+            // controls = new THREE.FlyControls( camera );
+
+            controls.movementSpeed = 1.0;
+            controls.domElement = renderer2.domElement;
+            controls.rollSpeed = Math.PI / 24;
+            controls.autoForward = false;
+            controls.dragToLook = true;
+        }
+
+       // scene.remove(threeMesh2); //based on quadmesh mesh
+      //  scene.add(threeMesh2); //based on quadmesh mesh
+
+    }
+
+    function animate() {
+
+        frame++;
+
+
+        var delta = clock.getDelta();
+        controls.update( delta );
+
+
+        renderer2.render( scene, camera );
+        stats.update();
+
+        requestAnimationFrame( animate );
+    }
+
+
+</script><div style="position: fixed; top: 0px; left: 0px; cursor: pointer; opacity: 0.9; z-index: 10000;"><canvas width="160" height="96" style="width: 80px; height: 48px; display: block;"></canvas><canvas width="160" height="96" style="width: 80px; height: 48px; display: none;"></canvas><canvas width="160" height="96" style="width: 80px; height: 48px; display: none;"></canvas></div>
+
+
+<canvas width="2324" height="803" id="threecanvas" style="width: 100%; height: 100%; position: absolute;"></canvas></body></html>
